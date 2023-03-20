@@ -1,0 +1,9 @@
+tests-out/
+.o
+.vscode/
+*.txt
+*/bin/*
+bin/
+
+
+
