@@ -1,70 +1,123 @@
 #include <stdio.h>
 #include <stdlib.h>
-#define BUFFER_SIZE 10000
+#include <stdbool.h>
+#include <errno.h>
+#include <string.h>
+#include <stdint.h>
 
-int compress(char* buffer, size_t nread, FILE *fp, int count);
+#define BUFFER_SIZE 1024
+
+void compress(char* buffer, size_t nread, FILE *fp);
+
+bool concat_files(char** file_paths, int num_files, FILE* output_path);
 
 
-int main(int argc, char** argv) {
-    for (int i = 1; i < argc; i++) { 
-        char *fileName = argv[i];
-        char* buffer = malloc(BUFFER_SIZE);
-        FILE *fp = fopen(fileName, "rb");
-        FILE *outFilePointer = stdout;
-        // FILE *outFilePointer = fopen("output.txt", "wb");
+bool concat_files(char** file_paths, int num_files, FILE* fp_out) {
+    for (int i = 0; i < num_files; i++) {
+        FILE *fp = fopen(file_paths[i], "rb");
         if (fp == NULL) {
-            printf("Error opening the file\n");
+            return false;
         }
-        size_t nread;
-        int count;
-        while ((nread = fread(buffer, 1, BUFFER_SIZE, fp)) > 0) { 
-            if (count > 0)
-                count = compress(buffer, nread, outFilePointer, count);
-            else 
-                count = compress(buffer, nread, outFilePointer, 1);   
+        size_t bytes_read;
+        char buffer[1024];
+        while((bytes_read = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
+            fwrite(buffer, 1, bytes_read, fp_out);
         }
-        free(buffer);
         fclose(fp);
-        // fclose(outFilePointer);
     }
+    return true;
 }
 
-int compress(char* buffer, size_t nread, FILE *fp, int count) {
-    int index = 0;
-    while (index < nread) {
-        char current_char = buffer[index];
-        while (index + 1 < nread) {
-            current_char = buffer[index];
-            if (current_char != buffer[index + 1]) {
-                char *temp = malloc(5);
-                temp[0] = (count >> 0) & 0xFF;
-                temp[1] = (count >> 8) & 0xFF;
-                temp[2] = (count >> 16) & 0xFF;
-                temp[3] = (count >> 24) & 0xFF;
-                temp[4] = current_char;
-                fwrite(temp, 1, 5, fp);
-                free(temp);
-                count = 1;
+void compress(char* buffer, size_t nread, FILE *fp) {
+    struct chunk {
+        int32_t count;
+        char ascii_char;
+    };
+    int curr_pos = 0;
+    int forward_pos = curr_pos + 1;
+    printf("Hello!!");
+    while (curr_pos < nread) {
+        int count = 1;
+        while (forward_pos < nread) {
+            if (buffer[forward_pos] != buffer[curr_pos]) {
                 break;
             }
             count++;
-            index++;
+            forward_pos++;
+            curr_pos++;
         }
-        index++;
+        // write out the compressed data to stdout
+        struct chunk count_ascii_pair;
+        count_ascii_pair.count = count;
+        count_ascii_pair.ascii_char = buffer[curr_pos];
+        printf("count? %d", count_ascii_pair.count);
+        fwrite(&count_ascii_pair, sizeof(struct chunk), 1, stdout);
+        curr_pos++;
+        forward_pos++;
     }
-    return count;
 }
 
-// temp[0] = count;
-        // printf("%d%c\n", temp[0], temp[4]);
-        // size_t nwritten = fwrite(&buffer[index - count + 1], 1, count, stdout);
-        // FILE *fop = fopen("output.txt", "wb");
-        // if (nwritten < count) {
-        //         printf("nwritten: %d\n", (int) nwritten);
-        //         printf("ncount: %d\n", count);
-        //         printf("Error has occurred while writing to a file.\n");
-        //         exit(1);
-        // }
-        // for (int i = 0; i < 5; i++) {
-        //     printf("byte %d: %hhu\n", i, temp[i]);
-        // }
+int main(int argc, char** argv) {
+    if (argc == 1) {
+        printf("wzip: file1 [file2 ...]\n");
+        return 1;
+    }
+    char* combined_filename = "out_concat.txt";
+    int ret = remove(combined_filename);
+    if (ret > 0) {
+        printf("ERROR: canot remove the combined file.");
+        printf("%s\n", strerror(errno));
+        return 1;
+    }
+    FILE* fp_combined = fopen(combined_filename, "ab");
+    if (fp_combined == NULL) {
+        printf("ERROR: cannot create a new file.\n");
+        printf("%s\n", strerror(errno));
+        exit(1);
+    }
+    bool res = concat_files(&argv[1], argc - 1, fp_combined);
+    if (!res) {
+        printf("ERROR: cannot concatenate files.\n");
+        printf("%s\n", strerror(errno));
+        exit(1);
+    }
+
+    char* buffer = malloc(sizeof(char) * BUFFER_SIZE);
+    size_t nread;
+    while ((nread = fread(buffer, 1, BUFFER_SIZE, fp_combined)) > 0) { 
+        printf("before fread:");
+        compress(buffer, nread, stdout); 
+    }
+    printf("nread: %ld", nread);
+
+
+    free(buffer);
+    fclose(fp_combined);
+}
+
+
+// int compress2(char* buffer, size_t nread, FILE *fp) {
+//     int index = 0;
+//     int count = 1;
+//     while (index < nread) {
+//         char current_char = buffer[index];
+//         while (index + 1 < nread) {
+//             current_char = buffer[index];
+//             if (current_char != buffer[index + 1]) {
+//                 char *temp = malloc(5);
+//                 temp[0] = (count >> 0) & 0xFF;
+//                 temp[1] = (count >> 8) & 0xFF;
+//                 temp[2] = (count >> 16) & 0xFF;
+//                 temp[3] = (count >> 24) & 0xFF;
+//                 temp[4] = current_char;
+//                 fwrite(temp, 1, 5, fp);
+//                 free(temp);
+//                 break;
+//             }
+//             count++;
+//             index++;
+//         }
+//         index++;
+//     }
+//     return count;
+// }
