@@ -35,7 +35,6 @@ void compress(char* buffer, size_t nread, FILE *fp) {
     };
     int curr_pos = 0;
     int forward_pos = curr_pos + 1;
-    printf("Hello!!");
     while (curr_pos < nread) {
         int count = 1;
         while (forward_pos < nread) {
@@ -47,11 +46,11 @@ void compress(char* buffer, size_t nread, FILE *fp) {
             curr_pos++;
         }
         // write out the compressed data to stdout
+        // TODO: maybe ditch struct and use bit manipulation
         struct chunk count_ascii_pair;
         count_ascii_pair.count = count;
         count_ascii_pair.ascii_char = buffer[curr_pos];
-        printf("count? %d", count_ascii_pair.count);
-        fwrite(&count_ascii_pair, sizeof(struct chunk), 1, stdout);
+        fwrite(&count_ascii_pair, 1, 5, stdout);
         curr_pos++;
         forward_pos++;
     }
@@ -69,7 +68,7 @@ int main(int argc, char** argv) {
         printf("%s\n", strerror(errno));
         return 1;
     }
-    FILE* fp_combined = fopen(combined_filename, "ab");
+    FILE* fp_combined = fopen(combined_filename, "a+b");
     if (fp_combined == NULL) {
         printf("ERROR: cannot create a new file.\n");
         printf("%s\n", strerror(errno));
@@ -81,43 +80,21 @@ int main(int argc, char** argv) {
         printf("%s\n", strerror(errno));
         exit(1);
     }
-
-    char* buffer = malloc(sizeof(char) * BUFFER_SIZE);
+    if (fseek(fp_combined, 0, SEEK_SET) != 0) {
+        printf("ERROR: cannot put the file position indicator to the beginning.\n");
+        printf("%s\n", strerror(errno));
+        exit(1);
+    }
+    // char* buffer = malloc(sizeof(char) * BUFFER_SIZE);
+    char buffer[BUFFER_SIZE];
     size_t nread;
+
     while ((nread = fread(buffer, 1, BUFFER_SIZE, fp_combined)) > 0) { 
-        printf("before fread:");
         compress(buffer, nread, stdout); 
     }
-    printf("nread: %ld", nread);
 
 
-    free(buffer);
+    // free(buffer);
     fclose(fp_combined);
 }
 
-
-// int compress2(char* buffer, size_t nread, FILE *fp) {
-//     int index = 0;
-//     int count = 1;
-//     while (index < nread) {
-//         char current_char = buffer[index];
-//         while (index + 1 < nread) {
-//             current_char = buffer[index];
-//             if (current_char != buffer[index + 1]) {
-//                 char *temp = malloc(5);
-//                 temp[0] = (count >> 0) & 0xFF;
-//                 temp[1] = (count >> 8) & 0xFF;
-//                 temp[2] = (count >> 16) & 0xFF;
-//                 temp[3] = (count >> 24) & 0xFF;
-//                 temp[4] = current_char;
-//                 fwrite(temp, 1, 5, fp);
-//                 free(temp);
-//                 break;
-//             }
-//             count++;
-//             index++;
-//         }
-//         index++;
-//     }
-//     return count;
-// }
