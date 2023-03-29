@@ -12,6 +12,16 @@ char* process_input(FILE* f_source);
 int init_path_variable(char** PATH);
 int check_executable_path_validty(const char* executable_path, const char** pPATH);
 bool is_absolute_path(const char* executable_path);
+char* get_cwd();
+bool is_built_in(const char* target);
+void execute_built_in(const char* built_in_filename); 
+
+const char *BUILT_IN_COMMANDS[] = {
+    "exit",
+    "cd",
+    "path"
+};
+const size_t NUM_BUILT_IN_COMMANDS = 3;
 
 bool is_absolute_path(const char* executable_path) {
     // assume Linux path
@@ -22,31 +32,69 @@ bool is_absolute_path(const char* executable_path) {
     return false;
 }
 
+char* get_cwd() {
+    size_t buffer_size = 256;
+    char *buffer = (char *) malloc(buffer_size);
+    while (getcwd(buffer, buffer_size) == NULL) {
+        buffer_size = buffer_size * 2;
+        buffer = realloc(buffer, buffer_size);
+        if (buffer == NULL) {
+            printf("ERROR: failed to reallocate a memory block for getting cwd.");
+        }
+    }
+    return buffer;
+}
+
 const char* check_executable_path_validity(const char* executable_path, const char* PATH) {
-    // immutability is important
+    // Check if an absolute path
     if (is_absolute_path(executable_path)) {
         if (access(executable_path, X_OK) == 0) {
             return executable_path;
+        } else {
+            return NULL;
         }
     }
-    // only binary filename is given
-    char* PATH_copy = strdup(PATH);
+    // (Not absolute path) only binary filename is given
+    // char* PATH_copy = strdup(PATH);
     const char* delimiter = ":";
+    char* cwd = get_cwd();
+    char* cwd_PATH_combined = malloc(strlen(cwd) + strlen(delimiter) + strlen(PATH) + strlen("\0"));
+    strcpy(cwd_PATH_combined, cwd);
+    strcat(cwd_PATH_combined, delimiter);
+    strcat(cwd_PATH_combined, PATH);  
     char* path;
     char* absolute_executable_path;
     // assume Linux path
     const char *path_separator = "/";
-    while ((path = strsep(&PATH_copy, delimiter)) != NULL) {
+    char* cwd_PATH_combined_copy = cwd_PATH_combined;
+    while ((path = strsep(&cwd_PATH_combined_copy, delimiter)) != NULL) {
         absolute_executable_path = (char *) malloc(strlen(path) + strlen(path_separator) + strlen(executable_path) + strlen("\0"));
         strcpy(absolute_executable_path, path);
         strcat(absolute_executable_path, path_separator);
         strcat(absolute_executable_path, executable_path);
         if (access(absolute_executable_path, X_OK) == 0) {
+            free(cwd_PATH_combined);
             return absolute_executable_path;
-        }  
+        }
+        free(absolute_executable_path);  
     }
     return NULL;
 
+}
+
+bool is_built_in(const char* target) {
+    for (int i = 0; i < NUM_BUILT_IN_COMMANDS; i++) {
+        if (strcmp(target, BUILT_IN_COMMANDS[i]) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void execute_built_in(const char* built_in_filename)  {
+    if (strcmp(built_in_filename, "exit") == 0) {
+        exit(0);
+    } 
 }
 
 int main(int argc, char** argv) {
@@ -74,6 +122,7 @@ int main(int argc, char** argv) {
         if (input == NULL) {
             printf("ERROR: couldn't read the input.\n");
         }
+        char* input_original = input;
         const char* delimiter = " ";
         char* token;
         // get the executable bin name, which is the first token
@@ -83,18 +132,27 @@ int main(int argc, char** argv) {
             exit(1);
         }
 
+        // check for a built-in command
+        if (is_built_in(executable_path)) {
+            execute_built_in(executable_path);
+            free(input_original);
+            continue;
+        }
+
         const char *absolute_executable_path = check_executable_path_validity(executable_path, PATH);
         // printf("absolute_executable: %s\n", absolute_executable_path);
         if (absolute_executable_path == NULL) {
             printf("ERROR: cannot access the executable.\n");
-            exit(1);
+            // exit(1);
+            free(input_original);
+            continue;
         }
         
         while ((token = strsep(&input, delimiter)) != NULL) {
             printf("inputs: %s\n", token);
         }
 
-        free(input);
+        free(input_original);
     }
 }
 
@@ -116,6 +174,7 @@ char* process_input(FILE* f_source) {
     }
     // immutability is important
     char* input_copy = strdup(input);
+    free(input);
     return input_copy;
 }
 
@@ -126,6 +185,5 @@ int init_path_variable(char** PATH) {
         return -1;
     }
     strcpy(*PATH, initial_path);
-    printf("NEW PATH: %s\n", *PATH);
     return 0;
 }
