@@ -15,6 +15,8 @@ bool is_absolute_path(const char* executable_path);
 char* get_cwd();
 bool is_built_in(const char* target);
 void execute_built_in(const char* built_in_filename); 
+char ** takeout_all_arguments(const char* input, const char* delimiter);
+size_t get_token_nums(const char* input, const char* delimiter);
 
 const char *BUILT_IN_COMMANDS[] = {
     "exit",
@@ -94,7 +96,39 @@ bool is_built_in(const char* target) {
 void execute_built_in(const char* built_in_filename)  {
     if (strcmp(built_in_filename, "exit") == 0) {
         exit(0);
-    } 
+    }
+    else if (strcmp(built_in_filename, "cd")) {
+        // need to be implemented 
+    } else if (strcmp(built_in_filename, "path")) {
+        // need to be implemented
+    }
+}
+
+size_t get_token_nums(const char* input, const char* delimiter) {
+    char* input_copy = strdup(input);
+    size_t num_tokens = 0;
+    char* token;
+    if ((token =strsep(&input_copy, delimiter)) != NULL) {
+        num_tokens++;
+    }
+    free(input_copy);
+    return num_tokens;
+}
+
+char ** takeout_all_arguments(const char* input, const char* delimiter) {
+    // separate out bin path and arguments that follows it
+    char* input_copy = strdup(input);
+    char* token;
+    
+    size_t num_tokens = get_token_nums(input, delimiter);
+    // create 2D array
+    char** arguments = (char**) malloc(sizeof(char*) * num_tokens);
+    int index = 0;
+    while ((token =strsep(&input_copy, delimiter)) != NULL) {
+        arguments[index++] = token;
+    }
+    free(input_copy);
+    return arguments;
 }
 
 int main(int argc, char** argv) {
