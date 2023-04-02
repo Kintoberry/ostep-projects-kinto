@@ -8,6 +8,8 @@
 #include <fcntl.h>
 #include "./wish-utilities.h"
 
+static char *PATH = NULL;
+
 const char *BUILT_IN_COMMANDS[] = {
     "exit",
     "cd",
@@ -89,8 +91,8 @@ int execute_built_in(char** tokens, size_t num_of_tokens)  {
         exit(0);
     }
     else if (strcmp(tokens[0], "cd")) {
-        // need to be implemented 
-        if (num_of_tokens > 2 || num_of_tokens == 0) {
+        // chdir only takes one argument. 
+        if (num_of_tokens > 2 || num_of_tokens == 1) {
             return -1;
         }
         int ret = chdir(tokens[1]);
@@ -101,6 +103,7 @@ int execute_built_in(char** tokens, size_t num_of_tokens)  {
 
     } else if (strcmp(tokens[0], "path")) {
         // need to be implemented
+
     }
     //
     return 0;
@@ -138,6 +141,22 @@ char ** takeout_all_arguments(const char* input, const char* delimiter, size_t *
     return arguments;
 }
 
+int init_path(void) {
+    char* initial_path = "/bin:/usr/bin";
+    *PATH = (char*) malloc(strlen(initial_path) + 1);
+    if (*PATH == NULL) {
+        return -1;
+    }
+    strcpy(*PATH, initial_path);
+    return 0;
+}
+void set_path(char *new_path) {
+    free(PATH);
+    PATH = strdup(new_path);
+}
+const char * get_path(void) {
+    return PATH;
+}
 
 int init_path_variable(char** PATH) {
     char* initial_path = "/bin:/usr/bin";

@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
         printf("ERROR: Bad usage.\n");
         exit(1);
     }
-    int err = init_path_variable(&PATH);
+    int err = init_path();
     if (err == -1) {
         printf("ERROR: PATH initionalization failed.\n");
         exit(1);

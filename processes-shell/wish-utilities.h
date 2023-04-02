@@ -11,3 +11,6 @@ bool is_built_in(const char* target);
 int execute_built_in(char** tokens, size_t num_of_tokens); 
 char ** takeout_all_arguments(const char* input, const char* delimiter, size_t *num_of_tokens);
 
+int init_path(void);
+void set_path(char *new_path);
+const char * get_path(void);
