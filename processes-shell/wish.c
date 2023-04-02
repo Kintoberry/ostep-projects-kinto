@@ -1,5 +1,7 @@
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdlib.h>
+#include <string.h>
 #include "./wish-utilities.h"
 
 char* PATH = NULL;
@@ -33,33 +35,31 @@ int main(int argc, char** argv) {
         }
         char* input_original = input;
         const char* delimiter = " ";
-        char* token;
-        // get the executable bin name, which is the first token
-        const char* executable_path = strsep(&input, delimiter);
-        if (executable_path == NULL) {
-            printf("ERROR: no name of an executable file.\n");
-            exit(1);
-        }
-
-        // check for a built-in command
-        if (is_built_in(executable_path)) {
-            execute_built_in(executable_path);
-            free(input_original);
-            continue;
-        }
-
-        const char *absolute_executable_path = check_executable_path_validity(executable_path, PATH);
-        // printf("absolute_executable: %s\n", absolute_executable_path);
-        if (absolute_executable_path == NULL) {
-            printf("ERROR: cannot access the executable.\n");
-            // exit(1);
-            free(input_original);
-            continue;
-        }
         
-        while ((token = strsep(&input, delimiter)) != NULL) {
-            printf("inputs: %s\n", token);
+        size_t num_of_tokens;
+        char** tokens = takeout_all_arguments(input, delimiter, &num_of_tokens);
+        if (tokens == NULL) {
+            free(input_original);
+            continue;
         }
+        // check for a built-in command
+        if (is_built_in(tokens[0])) {
+            if ((execute_built_in(tokens, num_of_tokens) == -1)) {
+                printf("ERROR: running builtin function has failed.\n");
+            }
+            free(input_original);
+            continue;
+        }
+
+        // char *absolute_executable_path = check_executable_path_validity(executable_path, PATH);
+        // // printf("absolute_executable: %s\n", absolute_executable_path);
+        // if (absolute_executable_path == NULL) {
+        //     printf("ERROR: cannot access the executable.\n");
+        //     // exit(1);
+        //     free(input_original);
+        //     continue;
+        // }
+        
 
         free(input_original);
     }

@@ -37,7 +37,7 @@ char* get_cwd() {
     return buffer;
 }
 
-const char* check_executable_path_validity(const char* executable_path, const char* PATH) {
+char* check_executable_path_validity(char* executable_path, const char* PATH) {
     // Check if an absolute path
     if (is_absolute_path(executable_path)) {
         if (access(executable_path, X_OK) == 0) {
@@ -74,24 +74,36 @@ const char* check_executable_path_validity(const char* executable_path, const ch
 
 }
 
-bool is_built_in(const char* target) {
+bool is_built_in(const char* first_token) {
     for (int i = 0; i < NUM_BUILT_IN_COMMANDS; i++) {
-        if (strcmp(target, BUILT_IN_COMMANDS[i]) == 0) {
+        if (strcmp(first_token, BUILT_IN_COMMANDS[i]) == 0) {
             return true;
         }
     }
     return false;
 }
 
-void execute_built_in(const char* built_in_filename)  {
-    if (strcmp(built_in_filename, "exit") == 0) {
+
+int execute_built_in(char** tokens, size_t num_of_tokens)  {
+    if (strcmp(tokens[0], "exit") == 0) {
         exit(0);
     }
-    else if (strcmp(built_in_filename, "cd")) {
+    else if (strcmp(tokens[0], "cd")) {
         // need to be implemented 
-    } else if (strcmp(built_in_filename, "path")) {
+        if (num_of_tokens > 2 || num_of_tokens == 0) {
+            return -1;
+        }
+        int ret = chdir(tokens[1]);
+        if (ret == -1) {
+            return -1;
+        }
+        return 0;
+
+    } else if (strcmp(tokens[0], "path")) {
         // need to be implemented
     }
+    //
+    return 0;
 }
 
 // NOTE: we don't deal with multiple spaces between tokens or trailing spaces
@@ -107,14 +119,17 @@ size_t get_token_nums(const char* input, const char* delimiter) {
     return num_tokens;
 }
 
-char ** takeout_all_arguments(const char* input, const char* delimiter) {
+char ** takeout_all_arguments(const char* input, const char* delimiter, size_t *num_of_tokens) {
     // separate out bin path and arguments that follows it
     char* input_copy = strdup(input);
     char* token;
     
-    size_t num_tokens = get_token_nums(input, delimiter);
+    *num_of_tokens = get_token_nums(input, delimiter);
+    if (num_of_tokens == 0) {
+        return NULL;
+    }
     // create 2D array
-    char** arguments = (char**) malloc(sizeof(char*) * num_tokens);
+    char** arguments = (char**) malloc(sizeof(char*) * (*num_of_tokens));
     int index = 0;
     while ((token =strsep(&input_copy, delimiter)) != NULL) {
         arguments[index++] = token;

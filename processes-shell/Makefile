@@ -1,0 +1,1 @@
+gcc wish.c wish-utilities.c -Werror -Wall

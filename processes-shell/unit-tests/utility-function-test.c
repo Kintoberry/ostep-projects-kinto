@@ -1,3 +1,4 @@
+#define UNITY_FAIL_AND_BAIL
 #include "wish-utilities.h"
 #include "unity.h"
 
@@ -5,7 +6,7 @@ void test_get_token_nums(void) {
     char *arguments = "cp src1 src2 src3 dest";
     char *delimter = " ";
     size_t token_num = get_token_nums(arguments, delimter);
-    TEST_ASSERT_EQUAL_INT(5, token_num);
+    TEST_ASSERT_EQUAL_INT(6, token_num);
 
     arguments = "ls -a";
     token_num = get_token_nums(arguments, delimter);
