@@ -90,7 +90,7 @@ int execute_built_in(char** tokens, size_t num_of_tokens)  {
     if (strcmp(tokens[0], "exit") == 0) {
         exit(0);
     }
-    else if (strcmp(tokens[0], "cd")) {
+    else if (strcmp(tokens[0], "cd") == 0) {
         // chdir only takes one argument. 
         if (num_of_tokens > 2 || num_of_tokens == 1) {
             return -1;
@@ -101,9 +101,22 @@ int execute_built_in(char** tokens, size_t num_of_tokens)  {
         }
         return 0;
 
-    } else if (strcmp(tokens[0], "path")) {
+    } else if (strcmp(tokens[0], "path") == 0) {
         // need to be implemented
-
+        if (num_of_tokens == 1) {
+            set_path("");
+        } else {
+            size_t total_length = 0;
+            for (int i = 1; i < num_of_tokens; i++) {
+                total_length += strlen(tokens[i]);
+            }
+            char new_path[total_length];
+            for(int i = 1; i < num_of_tokens; i++) {
+                strcat(new_path, tokens[i]);
+            }
+            set_path(new_path);
+        }
+        return 0;
     }
     //
     return 0;
@@ -143,11 +156,11 @@ char ** takeout_all_arguments(const char* input, const char* delimiter, size_t *
 
 int init_path(void) {
     char* initial_path = "/bin:/usr/bin";
-    *PATH = (char*) malloc(strlen(initial_path) + 1);
-    if (*PATH == NULL) {
+    PATH = (char*) malloc(strlen(initial_path) + 1);
+    if (PATH == NULL) {
         return -1;
     }
-    strcpy(*PATH, initial_path);
+    strcpy(PATH, initial_path);
     return 0;
 }
 void set_path(char *new_path) {
