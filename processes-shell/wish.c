@@ -22,6 +22,11 @@ int main(int argc, char** argv) {
     if (argc == 2) {
         // batch mode
         FILE* fp = fopen(argv[1], "r");
+        char *input_from_batch;
+        while ((input_from_batch = receive_input(fp)) != NULL) {
+            process_input(input_from_batch);
+
+        }
         // read each lines in the file and execute commands
         // reading the line is the same as in the interactive mode.
         fclose(fp);
@@ -29,27 +34,11 @@ int main(int argc, char** argv) {
     
     while(true) {
         printf("wish> ");
-        char* input = process_input(stdin);
+        char* input = receive_input(stdin);
         if (input == NULL) {
             printf("ERROR: couldn't read the input.\n");
         }
-        char* input_original = input;
-        const char* delimiter = " ";
-        
-        size_t num_of_tokens;
-        char** tokens = takeout_all_arguments(input, delimiter, &num_of_tokens);
-        if (tokens == NULL) {
-            free(input_original);
-            continue;
-        }
-        // check for a built-in command
-        if (is_built_in(tokens[0])) {
-            if ((execute_built_in(tokens, num_of_tokens) == -1)) {
-                printf("ERROR: running builtin function has failed.\n");
-            }
-            free(input_original);
-            continue;
-        }
+        process_input(input);
 
         // char *absolute_executable_path = check_executable_path_validity(executable_path, PATH);
         // // printf("absolute_executable: %s\n", absolute_executable_path);
@@ -61,7 +50,6 @@ int main(int argc, char** argv) {
         // }
         
 
-        free(input_original);
     }
 }
 

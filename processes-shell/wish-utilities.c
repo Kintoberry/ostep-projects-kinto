@@ -182,7 +182,7 @@ int init_path_variable(char** PATH) {
 }
 
 
-char* process_input(FILE* f_source) {
+char* receive_input(FILE* f_source) {
     char* input = NULL;
     size_t len = 0;
     ssize_t nread;
@@ -202,4 +202,26 @@ char* process_input(FILE* f_source) {
     char* input_copy = strdup(input);
     free(input);
     return input_copy;
+}
+
+
+void process_input(char* input) {
+    char* input_original = input;
+    const char* delimiter = " ";
+    
+    size_t num_of_tokens;
+    char** tokens = takeout_all_arguments(input, delimiter, &num_of_tokens);
+    if (tokens == NULL) {
+        free(input_original);
+        return;
+    }
+    // check for a built-in command
+    if (is_built_in(tokens[0])) {
+        if ((execute_built_in(tokens, num_of_tokens) == -1)) {
+            printf("ERROR: running builtin function has failed.\n");
+        }
+        free(input_original);
+        return;
+    }
+    free(input_original);
 }

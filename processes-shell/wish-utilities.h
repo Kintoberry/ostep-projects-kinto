@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-char* process_input(FILE* f_source);
+char* receive_input(FILE* f_source);
 int init_path_variable(char** PATH);
 char* check_executable_path_validity(char* executable_path, const char* PATH);
 bool is_absolute_path(const char* executable_path);
@@ -14,3 +14,4 @@ char ** takeout_all_arguments(const char* input, const char* delimiter, size_t *
 int init_path(void);
 void set_path(char *new_path);
 const char * get_path(void);
+void process_input(char *input);
