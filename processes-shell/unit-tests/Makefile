@@ -1,0 +1,1 @@
+gcc utility-function-test.c ../wish-utilities.c ../../unity/src/unity.c -o unit_tests -Wall -Werror -I../../unity/src/ -I../
