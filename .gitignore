@@ -4,6 +4,6 @@ tests-out/
 *.txt
 */bin/*
 bin/
-
+a.out
 
 

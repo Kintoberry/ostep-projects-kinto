@@ -220,7 +220,7 @@ int execute_input(char *input) {
         }
         return 0;
     } else {
-        execute(tokens);
+        return execute(tokens);
     }
 }
 
@@ -231,11 +231,14 @@ int execute(char **cmd_and_args) {
         return -1;
     } else if (pid == 0) {
         // execv()
-        execv(cmd_absolute_path, cmd_and_args);
+        if ((execv(cmd_absolute_path, cmd_and_args)) == -1) {
+            return -1;
+        }
     } else {
         int status;
         waitpid(pid, &status, 0);
     }
+    return 0;
 
 }
 
