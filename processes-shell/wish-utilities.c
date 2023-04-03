@@ -215,7 +215,7 @@ int execute_input(char *input) {
     // check for a built-in command
     if (is_built_in(tokens[0])) {
         if ((execute_built_in(tokens, num_of_tokens) == -1)) {
-            printf("ERROR: running builtin function has failed.\n");
+            print_error();
             return -1;
         }
         return 0;
@@ -250,4 +250,9 @@ char** parse_input(char* input, size_t *num_of_tokens) {
     
     free(input_original);
     return tokens;
+}
+
+void print_error() {
+    char error_message[30] = "An error has occurred\n";
+    write(STDERR_FILENO, error_message, strlen(error_message)); 
 }

@@ -17,3 +17,4 @@ const char * get_path(void);
 char** parse_input(char *input, size_t *num_of_tokens);
 int execute_input(char *input);
 int execute(char **cmd_and_args);
+void print_error();
