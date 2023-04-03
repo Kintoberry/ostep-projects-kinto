@@ -24,11 +24,9 @@ int main(int argc, char** argv) {
         FILE* fp = fopen(argv[1], "r");
         char *input_from_batch;
         while ((input_from_batch = receive_input(fp)) != NULL) {
-            process_input(input_from_batch);
+            execute_input(input_from_batch);
 
         }
-        // read each lines in the file and execute commands
-        // reading the line is the same as in the interactive mode.
         fclose(fp);
     }
     
@@ -38,7 +36,7 @@ int main(int argc, char** argv) {
         if (input == NULL) {
             printf("ERROR: couldn't read the input.\n");
         }
-        process_input(input);
+        execute_input(input);
 
         // char *absolute_executable_path = check_executable_path_validity(executable_path, PATH);
         // // printf("absolute_executable: %s\n", absolute_executable_path);

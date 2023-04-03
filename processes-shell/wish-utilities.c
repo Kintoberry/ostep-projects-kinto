@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include "./wish-utilities.h"
+#include <sys/wait.h>
+#include <sys/types.h>
 
 static char *PATH = NULL;
 
@@ -39,11 +41,11 @@ char* get_cwd() {
     return buffer;
 }
 
-char* check_executable_path_validity(char* executable_path, const char* PATH) {
+char* check_executable_path_validity(char* cmd_path, const char* PATH) {
     // Check if an absolute path
-    if (is_absolute_path(executable_path)) {
-        if (access(executable_path, X_OK) == 0) {
-            return executable_path;
+    if (is_absolute_path(cmd_path)) {
+        if (access(cmd_path, X_OK) == 0) {
+            return cmd_path;
         } else {
             return NULL;
         }
@@ -62,10 +64,10 @@ char* check_executable_path_validity(char* executable_path, const char* PATH) {
     const char *path_separator = "/";
     char* cwd_PATH_combined_copy = cwd_PATH_combined;
     while ((path = strsep(&cwd_PATH_combined_copy, delimiter)) != NULL) {
-        absolute_executable_path = (char *) malloc(strlen(path) + strlen(path_separator) + strlen(executable_path) + strlen("\0"));
+        absolute_executable_path = (char *) malloc(strlen(path) + strlen(path_separator) + strlen(cmd_path) + strlen("\0"));
         strcpy(absolute_executable_path, path);
         strcat(absolute_executable_path, path_separator);
-        strcat(absolute_executable_path, executable_path);
+        strcat(absolute_executable_path, cmd_path);
         if (access(absolute_executable_path, X_OK) == 0) {
             free(cwd_PATH_combined);
             return absolute_executable_path;
@@ -144,12 +146,14 @@ char ** takeout_all_arguments(const char* input, const char* delimiter, size_t *
     if (num_of_tokens == 0) {
         return NULL;
     }
-    // create 2D array
-    char** arguments = (char**) malloc(sizeof(char*) * (*num_of_tokens));
+    // *num_of_tokens + 1 here for the NULL at the end of the array
+    size_t arr_size = sizeof(char*) * (*num_of_tokens + 1);
+    char** arguments = (char**) malloc(arr_size);
     int index = 0;
     while ((token =strsep(&input_copy, delimiter)) != NULL) {
         arguments[index++] = token;
     }
+    arguments[index] = NULL;
     free(input_copy);
     return arguments;
 }
@@ -204,24 +208,43 @@ char* receive_input(FILE* f_source) {
     return input_copy;
 }
 
-
-void process_input(char* input) {
-    char* input_original = input;
-    const char* delimiter = " ";
-    
+int execute_input(char *input) {
     size_t num_of_tokens;
-    char** tokens = takeout_all_arguments(input, delimiter, &num_of_tokens);
-    if (tokens == NULL) {
-        free(input_original);
-        return;
-    }
+    char **tokens = parse_input(input, &num_of_tokens);
+
     // check for a built-in command
     if (is_built_in(tokens[0])) {
         if ((execute_built_in(tokens, num_of_tokens) == -1)) {
             printf("ERROR: running builtin function has failed.\n");
+            return -1;
         }
-        free(input_original);
-        return;
+        return 0;
+    } else {
+        execute(tokens);
     }
+}
+
+int execute(char **cmd_and_args) {
+    char* cmd_absolute_path = check_executable_path_validity(cmd_and_args[0], get_path());
+    pid_t pid = fork();
+    if (pid < 0) {
+        return -1;
+    } else if (pid == 0) {
+        // execv()
+        execv(cmd_absolute_path, cmd_and_args);
+    } else {
+        int status;
+        waitpid(pid, &status, 0);
+    }
+
+}
+
+char** parse_input(char* input, size_t *num_of_tokens) {
+    char* input_original = input;
+    const char* delimiter = " ";
+    
+    char** tokens = takeout_all_arguments(input, delimiter, num_of_tokens);
+    
     free(input_original);
+    return tokens;
 }
