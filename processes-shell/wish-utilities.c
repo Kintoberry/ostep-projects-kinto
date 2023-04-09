@@ -35,7 +35,8 @@ char* get_cwd() {
         buffer_size = buffer_size * 2;
         buffer = realloc(buffer, buffer_size);
         if (buffer == NULL) {
-            printf("ERROR: failed to reallocate a memory block for getting cwd.");
+            // printf("ERROR: failed to reallocate a memory block for getting cwd.");
+            print_error();
         }
     }
     return buffer;
@@ -192,10 +193,12 @@ char* receive_input(FILE* f_source) {
     ssize_t nread;
     nread = getline(&input, &len, f_source);
     if (nread == -1 && feof(stdin)) {
-        printf("EOF: end of stdin has reached.\n");
+        // printf("EOF: end of stdin has reached.\n");
+        print_error();
         exit(0);
     } else if (nread == -1 && ferror(stdin)) {
-        printf("ERROR: file error from stdin.\n");
+        // printf("ERROR: file error from stdin.\n");
+        print_error();
         return NULL;
     }
     // remove newline character in the input
@@ -225,6 +228,9 @@ int execute_input(char *input) {
 }
 
 int execute(char **cmd_and_args) {
+    if (is_redirection(cmd_and_args)) {
+        // set stdout
+    }
     char* cmd_absolute_path = check_executable_path_validity(cmd_and_args[0], get_path());
     pid_t pid = fork();
     if (pid < 0) {
