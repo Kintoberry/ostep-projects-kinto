@@ -201,6 +201,7 @@ char* receive_input(FILE* f_source) {
         print_error();
         return NULL;
     }
+    printf("strlen(input): %ld\n", strlen(input));
     // remove newline character in the input
     if (input[nread - 1] == '\n') {
         input[nread - 1] = '\0';
@@ -208,6 +209,39 @@ char* receive_input(FILE* f_source) {
     // immutability is important
     char* input_copy = strdup(input);
     free(input);
+    return input_copy;
+}
+
+char* preprocess_input(char *input) {
+    return "";
+}
+
+char* strip(char *input) {
+    char *input_copy = strdup(input);
+    // remove spaces and tab from the end
+    int index = strlen(input_copy) - 1;
+    while(index > 0) {
+        if (input_copy[index] == ' ' || input_copy[index] == '\t') {
+            input_copy[index] = '\0';
+        } else {
+            break;
+        }
+        index--;
+    }
+    
+    // it removes space and tab from the begining and end of the string
+    index = 0;
+    int original_length = strlen(input_copy);
+    int front_count = 0;
+    while (index < original_length) {
+        if (input_copy[index] == ' ' || input_copy[index] == '\t') {
+            front_count++;
+        } else {
+            break;
+        }
+        index++;
+    }
+    memmove(input_copy, input_copy + front_count, strlen(input_copy) + 1 - front_count);
     return input_copy;
 }
 
@@ -228,9 +262,9 @@ int execute_input(char *input) {
 }
 
 int execute(char **cmd_and_args) {
-    if (is_redirection(cmd_and_args)) {
-        // set stdout
-    }
+    // if (is_redirection(cmd_and_args)) {
+    //     // set stdout
+    // }
     char* cmd_absolute_path = check_executable_path_validity(cmd_and_args[0], get_path());
     pid_t pid = fork();
     if (pid < 0) {

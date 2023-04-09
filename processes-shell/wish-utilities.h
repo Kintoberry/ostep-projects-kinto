@@ -18,3 +18,5 @@ char** parse_input(char *input, size_t *num_of_tokens);
 int execute_input(char *input);
 int execute(char **cmd_and_args);
 void print_error();
+char* preprocess_input(char *input);
+char* strip(char *input);
