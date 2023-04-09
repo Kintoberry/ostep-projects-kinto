@@ -8,7 +8,7 @@ char* check_executable_path_validity(char* cmd_path, const char* PATH);
 bool is_absolute_path(const char* executable_path);
 char* get_cwd();
 bool is_built_in(const char* target);
-int execute_built_in(char** tokens, size_t num_of_tokens); 
+int execute_built_in(char** tokens); 
 char ** takeout_all_arguments(const char* input, const char* delimiter, size_t *num_of_tokens);
 
 int init_path(void);
@@ -20,3 +20,4 @@ int execute(char **cmd_and_args);
 void print_error();
 char* preprocess_input(char *input);
 char* strip(char *input);
+char ***separate_and_parse_parallel_commands(char *input);

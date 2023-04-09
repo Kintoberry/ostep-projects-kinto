@@ -89,7 +89,14 @@ bool is_built_in(const char* first_token) {
 }
 
 
-int execute_built_in(char** tokens, size_t num_of_tokens)  {
+int execute_built_in(char** tokens)  {
+    
+    int index = 0;
+    int count = 0;
+    while (tokens[index] != NULL) {
+        count++;
+    }
+    size_t num_of_tokens = count;
     if (strcmp(tokens[0], "exit") == 0) {
         exit(0);
     }
@@ -138,12 +145,31 @@ size_t get_token_nums(const char* input, const char* delimiter) {
     return num_tokens;
 }
 
-char ** takeout_all_arguments(const char* input, const char* delimiter, size_t *num_of_tokens) {
+
+char ***separate_and_parse_parallel_commands(char *input) {
+    char *delimiter = "&";
+    size_t num_of_parallel_command;
+    char **cmds = takeout_all_arguments(input, delimiter, &num_of_parallel_command);
+    int index = 0;
+    char ***arr_of_cmds_args = malloc(sizeof(char*) * num_of_parallel_command);
+    while (index < num_of_parallel_command) {
+        delimiter = " ";
+        size_t num_of_tokens;
+        char *original_str = cmds[index];
+        cmds[index] = strip(cmds[index]);
+        free(original_str);
+        arr_of_cmds_args[index] = takeout_all_arguments(cmds[index], delimiter, &num_of_tokens);
+        index++;
+    }   
+    return arr_of_cmds_args;
+}
+
+char **takeout_all_arguments(const char* input, const char* delimiter, size_t *num_of_tokens) {
     // separate out bin path and arguments that follows it
     char* input_copy = strdup(input);
     char* token;
     
-    *num_of_tokens = get_token_nums(input, delimiter);
+    *num_of_tokens = get_token_nums(input_copy, delimiter);
     if (num_of_tokens == 0) {
         return NULL;
     }
@@ -201,7 +227,6 @@ char* receive_input(FILE* f_source) {
         print_error();
         return NULL;
     }
-    printf("strlen(input): %ld\n", strlen(input));
     // remove newline character in the input
     if (input[nread - 1] == '\n') {
         input[nread - 1] = '\0';
@@ -213,7 +238,7 @@ char* receive_input(FILE* f_source) {
 }
 
 char* preprocess_input(char *input) {
-    return "";
+    return strip(input);
 }
 
 char* strip(char *input) {
@@ -246,25 +271,38 @@ char* strip(char *input) {
 }
 
 int execute_input(char *input) {
-    size_t num_of_tokens;
-    char **tokens = parse_input(input, &num_of_tokens);
-
-    // check for a built-in command
-    if (is_built_in(tokens[0])) {
-        if ((execute_built_in(tokens, num_of_tokens) == -1)) {
-            print_error();
-            return -1;
+    char *preprocessed_input = preprocess_input(input);
+    // size_t num_of_tokens;
+    char ***cmds = separate_and_parse_parallel_commands(preprocessed_input);
+    // char **tokens = parse_input(preprocessed_input, &num_of_tokens);
+    int index = 0;
+    while(cmds[index] != NULL) {
+        int res = execute(cmds[index]);
+        if (res == -1) {
+            return res;
         }
-        return 0;
-    } else {
-        return execute(tokens);
+        index++;
     }
+    int status;
+    while (wait(&status) != -1) {
+        ;
+    }
+    return 0;
 }
 
 int execute(char **cmd_and_args) {
     // if (is_redirection(cmd_and_args)) {
     //     // set stdout
     // }
+    // check for a built-in command
+    if (is_built_in(cmd_and_args[0])) {
+        if ((execute_built_in(cmd_and_args) == -1)) {
+            print_error();
+            return -1;
+        }
+        return 0;
+    }
+
     char* cmd_absolute_path = check_executable_path_validity(cmd_and_args[0], get_path());
     pid_t pid = fork();
     if (pid < 0) {
@@ -275,20 +313,17 @@ int execute(char **cmd_and_args) {
             return -1;
         }
     } else {
-        int status;
-        waitpid(pid, &status, 0);
+        // int status;
+        // waitpid(pid, &status, 0);
+        return 0;
     }
     return 0;
-
 }
 
+
 char** parse_input(char* input, size_t *num_of_tokens) {
-    char* input_original = input;
     const char* delimiter = " ";
-    
     char** tokens = takeout_all_arguments(input, delimiter, num_of_tokens);
-    
-    free(input_original);
     return tokens;
 }
 

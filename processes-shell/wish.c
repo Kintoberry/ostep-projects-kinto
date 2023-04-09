@@ -29,10 +29,13 @@ int main(int argc, char** argv) {
     if (is_batch_mode) {
         fp = fopen(argv[1], "r");  
     } else {
-        fp = stdout;
+        fp = stdin;
+        printf("wish> ");
     }
     char* input;
+    
     while((input = receive_input(fp)) != NULL) {
+        // printf("input: %s\n", input);
         if (!is_batch_mode)
             printf("wish> ");
         if (input == NULL) {
