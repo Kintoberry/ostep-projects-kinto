@@ -151,7 +151,7 @@ char ***separate_and_parse_parallel_commands(char *input) {
     size_t num_of_parallel_command;
     char **cmds = takeout_all_arguments(input, delimiter, &num_of_parallel_command);
     int index = 0;
-    char ***arr_of_cmds_args = malloc(sizeof(char*) * num_of_parallel_command);
+    char ***arr_of_cmds_args = malloc(sizeof(char*) * num_of_parallel_command + 1);
     while (index < num_of_parallel_command) {
         delimiter = " ";
         size_t num_of_tokens;
@@ -160,7 +160,8 @@ char ***separate_and_parse_parallel_commands(char *input) {
         free(original_str);
         arr_of_cmds_args[index] = takeout_all_arguments(cmds[index], delimiter, &num_of_tokens);
         index++;
-    }   
+    }
+    arr_of_cmds_args[index] = NULL;
     return arr_of_cmds_args;
 }
 
@@ -272,9 +273,7 @@ char* strip(char *input) {
 
 int execute_input(char *input) {
     char *preprocessed_input = preprocess_input(input);
-    // size_t num_of_tokens;
     char ***cmds = separate_and_parse_parallel_commands(preprocessed_input);
-    // char **tokens = parse_input(preprocessed_input, &num_of_tokens);
     int index = 0;
     while(cmds[index] != NULL) {
         int res = execute(cmds[index]);
