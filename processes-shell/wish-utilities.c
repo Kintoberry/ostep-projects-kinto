@@ -75,6 +75,7 @@ char* check_executable_path_validity(char* cmd_path, const char* PATH) {
         strcpy(absolute_executable_path, path);
         strcat(absolute_executable_path, path_separator);
         strcat(absolute_executable_path, cmd_path);
+        printf("absolute_executable_path: %s\n", absolute_executable_path);
         if (access(absolute_executable_path, X_OK) == 0) {
             free(cwd_PATH_combined);
             return absolute_executable_path;
@@ -356,6 +357,10 @@ int execute(Command *cmd) {
         return 0;
     }
     char* cmd_absolute_path = check_executable_path_validity(cmd->cmd_and_args[0], get_path());
+    if (cmd_absolute_path == NULL) {
+        print_error();
+        return -1;
+    }
     pid_t pid = fork();
     if (pid < 0) {
         return -1;
