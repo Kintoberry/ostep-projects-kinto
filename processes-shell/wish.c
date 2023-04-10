@@ -35,7 +35,6 @@ int main(int argc, char** argv) {
     while((input = receive_input(fp)) != NULL) {
         if (execute_input(input) == -1) {
             free(input);
-            printf("wish> ");
             continue;
         }
         if (!is_batch_mode)

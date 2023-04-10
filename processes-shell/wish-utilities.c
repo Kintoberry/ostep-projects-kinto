@@ -75,7 +75,6 @@ char* check_executable_path_validity(char* cmd_path, const char* PATH) {
         strcpy(absolute_executable_path, path);
         strcat(absolute_executable_path, path_separator);
         strcat(absolute_executable_path, cmd_path);
-        printf("absolute_executable_path: %s\n", absolute_executable_path);
         if (access(absolute_executable_path, X_OK) == 0) {
             free(cwd_PATH_combined);
             return absolute_executable_path;
@@ -137,9 +136,9 @@ void overwrite_path(char **paths, int start_index) {
     for (int i = start_index; paths[i] != NULL; i++) {
         char *path;
         if (is_absolute_path(paths[i])) {
-            path = get_absolute_path(paths[i]);
-        } else {
             path = paths[i];
+        } else {
+            path = get_absolute_path(paths[i]);
         }
         total_length = total_length + strlen(path) + strlen(":");
     }
@@ -147,7 +146,7 @@ void overwrite_path(char **paths, int start_index) {
     char *new_PATH = malloc(total_length);
     for (int i = start_index; paths[i] != NULL; i++) {
         char *path;
-        if (is_absolute_path(paths[i])) {
+        if (!is_absolute_path(paths[i])) {
             path = get_absolute_path(paths[i]);
         } else {
             path = paths[i];
