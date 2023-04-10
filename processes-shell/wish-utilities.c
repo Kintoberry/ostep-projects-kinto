@@ -20,6 +20,9 @@ const size_t NUM_BUILT_IN_COMMANDS = 3;
 
 int execute(Command *cmd);
 char **parse_each_command(char *command_str, size_t num_items);
+void empty_path();
+void overwrite_path(char **paths, int start_index);
+char *get_absolute_path(char *path); 
 
 
 bool is_absolute_path(const char* executable_path) {
@@ -119,22 +122,50 @@ int execute_built_in(char** tokens)  {
     } else if (strcmp(tokens[0], "path") == 0) {
         // need to be implemented
         if (num_of_tokens == 1) {
-            set_path("");
+            empty_path();
         } else {
-            size_t total_length = 0;
-            for (int i = 1; i < num_of_tokens; i++) {
-                total_length += strlen(tokens[i]);
-            }
-            char new_path[total_length];
-            for(int i = 1; i < num_of_tokens; i++) {
-                strcat(new_path, tokens[i]);
-            }
-            set_path(new_path);
+            overwrite_path(tokens, 1);
         }
         return 0;
     }
-    //
     return 0;
+}
+
+void overwrite_path(char **paths, int start_index) {
+    size_t total_length = 0;
+    for (int i = start_index; paths[i] != NULL; i++) {
+        char *path;
+        if (is_absolute_path(paths[i])) {
+            path = get_absolute_path(paths[i]);
+        } else {
+            path = paths[i];
+        }
+        total_length = total_length + strlen(path) + strlen(":");
+    }
+    total_length += strlen("\0");
+    char *new_PATH = malloc(total_length);
+    for (int i = start_index; paths[i] != NULL; i++) {
+        char *path;
+        if (is_absolute_path(paths[i])) {
+            path = get_absolute_path(paths[i]);
+        } else {
+            path = paths[i];
+        }
+        strcat(new_PATH, path);
+        strcat(new_PATH, ":");
+    }
+    strcat(new_PATH, "\0");
+    free(PATH);
+    PATH = new_PATH;
+}
+
+char *get_absolute_path(char *path) {
+    char *cwd = get_cwd();
+    char *abs_path = malloc(strlen(cwd) + strlen(path) + strlen("\0"));
+    strcat(abs_path, cwd);
+    strcat(abs_path, path);
+    strcat(abs_path, "\0");
+    return abs_path;
 }
 
 // NOTE: we don't deal with multiple spaces between tokens or trailing spaces
@@ -175,7 +206,7 @@ char **separate_with_delimiter(const char* input, const char* delimiter, size_t 
 }
 
 int init_path(void) {
-    char* initial_path = "/bin:/usr/bin";
+    char* initial_path = "/bin:";
     PATH = (char*) malloc(strlen(initial_path) + 1);
     if (PATH == NULL) {
         return -1;
@@ -183,22 +214,12 @@ int init_path(void) {
     strcpy(PATH, initial_path);
     return 0;
 }
-void set_path(char *new_path) {
-    // free(PATH);
-    PATH = strdup(new_path);
+void empty_path() {
+    free(PATH);
+    PATH = strdup("");
 }
 const char * get_path(void) {
     return PATH;
-}
-
-int init_path_variable(char** PATH) {
-    char* initial_path = "/bin:/usr/bin";
-    *PATH = (char*) malloc(strlen(initial_path) + 1);
-    if (*PATH == NULL) {
-        return -1;
-    }
-    strcpy(*PATH, initial_path);
-    return 0;
 }
 
 
@@ -334,7 +355,6 @@ int execute(Command *cmd) {
         }
         return 0;
     }
-
     char* cmd_absolute_path = check_executable_path_validity(cmd->cmd_and_args[0], get_path());
     pid_t pid = fork();
     if (pid < 0) {
