@@ -20,8 +20,7 @@ int main(int argc, char** argv) {
     }
     int err = init_path();
     if (err == -1) {
-        // printf("ERROR: PATH initionalization failed.\n");
-        print_error();
+        printf("ERROR: PATH initionalization failed.\n");
         exit(1);
     }
 
@@ -33,16 +32,12 @@ int main(int argc, char** argv) {
         printf("wish> ");
     }
     char* input;
-    
     while((input = receive_input(fp)) != NULL) {
-        // printf("input: %s\n", input);
+        if (execute_input(input) == -1) {
+            continue;
+        }
         if (!is_batch_mode)
             printf("wish> ");
-        if (input == NULL) {
-            // printf("ERROR: couldn't read the input.\n");
-            print_error();
-        }
-        execute_input(input);
     }
     if (fp != stdout) {
         fclose(fp);

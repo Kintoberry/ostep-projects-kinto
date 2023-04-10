@@ -38,6 +38,37 @@ void test_strip(void) {
     TEST_ASSERT_EQUAL_INT(13, strlen(stripped_input));
 }
 
+void test_separate_parallel_commands(void) {
+    char input[] = "cd & ls&pwd";
+    size_t num_items;
+    char **cmds = separate_parallel_commands(input, &num_items);
+    TEST_ASSERT_EQUAL_STRING("cd", cmds[0]);
+    TEST_ASSERT_EQUAL_STRING("ls", cmds[1]);
+    TEST_ASSERT_EQUAL_STRING("pwd", cmds[2]);
+    TEST_ASSERT_EQUAL_INT(3, num_items);
+
+}
+
+void test_parse_each_parallel_command(void) {
+    char *input[] = {
+        "cd",
+        "pwd",
+        "ls -al",
+        "some_command -a -b --flag"
+    };
+    size_t num_item = 4;
+    char *** result = parse_each_parallel_command(input, num_item);
+    TEST_ASSERT_EQUAL_STRING("cd", result[0][0]);
+    TEST_ASSERT_EQUAL_STRING("pwd", result[1][0]);
+    TEST_ASSERT_EQUAL_STRING("ls", result[2][0]);
+    TEST_ASSERT_EQUAL_STRING("-al", result[2][1]);
+    TEST_ASSERT_EQUAL_STRING("some_command", result[3][0]);
+    TEST_ASSERT_EQUAL_STRING("-a", result[3][1]);
+    TEST_ASSERT_EQUAL_STRING("-b", result[3][2]);
+    TEST_ASSERT_EQUAL_STRING("--flag", result[3][3]);
+    TEST_ASSERT_EQUAL(result[4], NULL);
+}
+
 void setUp(void) {
     // Empty function, no setup needed for tests
 }
@@ -52,6 +83,8 @@ int main(void) {
     // RUN_TEST(test_get_token_nums); 
     // RUN_TEST(test_takeout_all_arguments);
     RUN_TEST(test_strip);
+    RUN_TEST(test_separate_parallel_commands);
+    RUN_TEST(test_parse_each_parallel_command);
 
     return UNITY_END(); // Close the Unity testing framework and return the test results
 }

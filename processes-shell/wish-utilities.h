@@ -9,8 +9,8 @@ bool is_absolute_path(const char* executable_path);
 char* get_cwd();
 bool is_built_in(const char* target);
 int execute_built_in(char** tokens); 
-char ** takeout_all_arguments(const char* input, const char* delimiter, size_t *num_of_tokens);
-
+char ** separate_with_delimiter(const char* input, const char* delimiter, size_t *num_of_tokens);
+char ***parse_each_parallel_command(char **parallel_commands, size_t num_items);
 int init_path(void);
 void set_path(char *new_path);
 const char * get_path(void);
@@ -21,3 +21,4 @@ void print_error();
 char* preprocess_input(char *input);
 char* strip(char *input);
 char ***separate_and_parse_parallel_commands(char *input);
+char **separate_parallel_commands(char *input, size_t *num_items);

@@ -90,14 +90,16 @@ bool is_built_in(const char* first_token) {
 
 
 int execute_built_in(char** tokens)  {
-    
     int index = 0;
     int count = 0;
-    while (tokens[index] != NULL) {
+    while (tokens[index++] != NULL) {
         count++;
     }
     size_t num_of_tokens = count;
     if (strcmp(tokens[0], "exit") == 0) {
+        if (num_of_tokens != 1) {
+            print_error();
+        }
         exit(0);
     }
     else if (strcmp(tokens[0], "cd") == 0) {
@@ -149,23 +151,23 @@ size_t get_token_nums(const char* input, const char* delimiter) {
 char ***separate_and_parse_parallel_commands(char *input) {
     char *delimiter = "&";
     size_t num_of_parallel_command;
-    char **cmds = takeout_all_arguments(input, delimiter, &num_of_parallel_command);
+    char **cmds = separate_with_delimiter(input, delimiter, &num_of_parallel_command);
     int index = 0;
-    char ***arr_of_cmds_args = malloc(sizeof(char*) * num_of_parallel_command + 1);
+    char ***arr_of_cmds_args = malloc(sizeof(char*) * (num_of_parallel_command + 1));
     while (index < num_of_parallel_command) {
         delimiter = " ";
         size_t num_of_tokens;
         char *original_str = cmds[index];
         cmds[index] = strip(cmds[index]);
         free(original_str);
-        arr_of_cmds_args[index] = takeout_all_arguments(cmds[index], delimiter, &num_of_tokens);
+        arr_of_cmds_args[index] = separate_with_delimiter(cmds[index], delimiter, &num_of_tokens);
         index++;
     }
     arr_of_cmds_args[index] = NULL;
     return arr_of_cmds_args;
 }
 
-char **takeout_all_arguments(const char* input, const char* delimiter, size_t *num_of_tokens) {
+char **separate_with_delimiter(const char* input, const char* delimiter, size_t *num_of_tokens) {
     // separate out bin path and arguments that follows it
     char* input_copy = strdup(input);
     char* token;
@@ -179,7 +181,7 @@ char **takeout_all_arguments(const char* input, const char* delimiter, size_t *n
     char** arguments = (char**) malloc(arr_size);
     int index = 0;
     while ((token =strsep(&input_copy, delimiter)) != NULL) {
-        arguments[index++] = token;
+        arguments[index++] = strip(token);
     }
     arguments[index] = NULL;
     free(input_copy);
@@ -196,7 +198,7 @@ int init_path(void) {
     return 0;
 }
 void set_path(char *new_path) {
-    free(PATH);
+    // free(PATH);
     PATH = strdup(new_path);
 }
 const char * get_path(void) {
@@ -220,22 +222,19 @@ char* receive_input(FILE* f_source) {
     ssize_t nread;
     nread = getline(&input, &len, f_source);
     if (nread == -1 && feof(stdin)) {
-        // printf("EOF: end of stdin has reached.\n");
-        print_error();
         exit(0);
     } else if (nread == -1 && ferror(stdin)) {
         // printf("ERROR: file error from stdin.\n");
-        print_error();
+        // print_error();
+        return NULL;
+    } else if (nread == -1) {
         return NULL;
     }
     // remove newline character in the input
     if (input[nread - 1] == '\n') {
         input[nread - 1] = '\0';
     }
-    // immutability is important
-    char* input_copy = strdup(input);
-    free(input);
-    return input_copy;
+    return input;
 }
 
 char* preprocess_input(char *input) {
@@ -271,15 +270,28 @@ char* strip(char *input) {
     return input_copy;
 }
 
+char **separate_parallel_commands(char *input, size_t *num_items) {
+    return separate_with_delimiter(input, "&", num_items);
+}
+
+char ***parse_each_parallel_command(char **parallel_commands, size_t num_items) {
+    char ***arr_of_cmds_and_args = malloc(sizeof(char **) * (num_items + 1));
+    for (int i = 0; i < num_items; i++) {
+        size_t num_tokens;
+        arr_of_cmds_and_args[i] = separate_with_delimiter(parallel_commands[i], " ", &num_tokens);
+    }
+    arr_of_cmds_and_args[num_items] = NULL;
+    return arr_of_cmds_and_args;
+}
+
 int execute_input(char *input) {
     char *preprocessed_input = preprocess_input(input);
+    // size_t num_parallel_cmds;
+    // char **parallel_commands = separate_parallel_commands(preprocessed_input, &num_parallel_cmds);
     char ***cmds = separate_and_parse_parallel_commands(preprocessed_input);
     int index = 0;
     while(cmds[index] != NULL) {
-        int res = execute(cmds[index]);
-        if (res == -1) {
-            return res;
-        }
+        execute(cmds[index]);
         index++;
     }
     int status;
@@ -290,10 +302,6 @@ int execute_input(char *input) {
 }
 
 int execute(char **cmd_and_args) {
-    // if (is_redirection(cmd_and_args)) {
-    //     // set stdout
-    // }
-    // check for a built-in command
     if (is_built_in(cmd_and_args[0])) {
         if ((execute_built_in(cmd_and_args) == -1)) {
             print_error();
@@ -309,12 +317,12 @@ int execute(char **cmd_and_args) {
     } else if (pid == 0) {
         // execv()
         if ((execv(cmd_absolute_path, cmd_and_args)) == -1) {
+            print_error();
             return -1;
         }
     } else {
         // int status;
         // waitpid(pid, &status, 0);
-        return 0;
     }
     return 0;
 }
@@ -322,7 +330,7 @@ int execute(char **cmd_and_args) {
 
 char** parse_input(char* input, size_t *num_of_tokens) {
     const char* delimiter = " ";
-    char** tokens = takeout_all_arguments(input, delimiter, num_of_tokens);
+    char** tokens = separate_with_delimiter(input, delimiter, num_of_tokens);
     return tokens;
 }
 
