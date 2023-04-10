@@ -1,5 +1,4 @@
 
-#include "wish-utilities.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,6 +17,10 @@ const char *BUILT_IN_COMMANDS[] = {
     "path"
 };
 const size_t NUM_BUILT_IN_COMMANDS = 3;
+
+int execute(Command *cmd);
+char **parse_each_command(char *command_str, size_t num_items);
+
 
 bool is_absolute_path(const char* executable_path) {
     // assume Linux path
@@ -148,24 +151,7 @@ size_t get_token_nums(const char* input, const char* delimiter) {
 }
 
 
-char ***separate_and_parse_parallel_commands(char *input) {
-    char *delimiter = "&";
-    size_t num_of_parallel_command;
-    char **cmds = separate_with_delimiter(input, delimiter, &num_of_parallel_command);
-    int index = 0;
-    char ***arr_of_cmds_args = malloc(sizeof(char*) * (num_of_parallel_command + 1));
-    while (index < num_of_parallel_command) {
-        delimiter = " ";
-        size_t num_of_tokens;
-        char *original_str = cmds[index];
-        cmds[index] = strip(cmds[index]);
-        free(original_str);
-        arr_of_cmds_args[index] = separate_with_delimiter(cmds[index], delimiter, &num_of_tokens);
-        index++;
-    }
-    arr_of_cmds_args[index] = NULL;
-    return arr_of_cmds_args;
-}
+
 
 char **separate_with_delimiter(const char* input, const char* delimiter, size_t *num_of_tokens) {
     // separate out bin path and arguments that follows it
@@ -237,9 +223,7 @@ char* receive_input(FILE* f_source) {
     return input;
 }
 
-char* preprocess_input(char *input) {
-    return strip(input);
-}
+
 
 char* strip(char *input) {
     char *input_copy = strdup(input);
@@ -274,49 +258,90 @@ char **separate_parallel_commands(char *input, size_t *num_items) {
     return separate_with_delimiter(input, "&", num_items);
 }
 
-char ***parse_each_parallel_command(char **parallel_commands, size_t num_items) {
-    char ***arr_of_cmds_and_args = malloc(sizeof(char **) * (num_items + 1));
-    for (int i = 0; i < num_items; i++) {
-        size_t num_tokens;
-        arr_of_cmds_and_args[i] = separate_with_delimiter(parallel_commands[i], " ", &num_tokens);
+int parse_redirection(Command* cmd, char *cmd_str) {
+    size_t num_items;
+    char **tokens = separate_with_delimiter(cmd_str, ">", &num_items);
+    if (num_items > 2) {
+        print_error();
+        return -1;
+    } else if (num_items == 2) {
+        cmd->is_redirection = true;
+        cmd->redirection_fp = fopen(tokens[1], "w");
+    } else {
+        cmd->is_redirection = false;
+        cmd->redirection_fp = NULL;
     }
-    arr_of_cmds_and_args[num_items] = NULL;
+    cmd->cmd_and_args = parse_each_command(tokens[0], (cmd->num_items));
+    return 0;
+}
+
+char **parse_each_command(char *command_str, size_t num_items) {
+    char **arr_of_cmds_and_args = malloc(sizeof(char *) * (num_items + 1));
+    // for (int i = 0; i < num_items; i++) {
+    // }
+    size_t num_tokens;
+    arr_of_cmds_and_args = separate_with_delimiter(command_str, " ", &num_tokens);
+    arr_of_cmds_and_args[num_tokens] = NULL;
     return arr_of_cmds_and_args;
 }
 
+Command **parse_all_commands(char *input) {
+    size_t num_parallel_cmds;
+    char **parallel_cmds = separate_parallel_commands(input, &num_parallel_cmds);
+    Command **cmds = (Command **) malloc(sizeof(Command **) * (num_parallel_cmds + 1));
+    int index = 0;
+    while (parallel_cmds[index] != NULL) {
+        Command *each_cmd = (Command *) malloc(sizeof(Command *));
+        parse_redirection(each_cmd, parallel_cmds[index]);
+        cmds[index] = each_cmd;
+        index++;
+    }
+    cmds[index] = NULL;
+    return cmds;
+}
+
 int execute_input(char *input) {
-    char *preprocessed_input = preprocess_input(input);
-    // size_t num_parallel_cmds;
-    // char **parallel_commands = separate_parallel_commands(preprocessed_input, &num_parallel_cmds);
-    char ***cmds = separate_and_parse_parallel_commands(preprocessed_input);
+    Command **cmds = parse_all_commands(strip(input));
     int index = 0;
     while(cmds[index] != NULL) {
-        execute(cmds[index]);
+        if (execute(cmds[index]) == -1) {
+            return -1;
+        }
         index++;
     }
     int status;
     while (wait(&status) != -1) {
         ;
     }
+    int i = 0;
+    while (cmds[i] != NULL) {
+        free(cmds[i++]);
+    }
+    free(cmds);
     return 0;
 }
 
-int execute(char **cmd_and_args) {
-    if (is_built_in(cmd_and_args[0])) {
-        if ((execute_built_in(cmd_and_args) == -1)) {
+int execute(Command *cmd) {
+    int original_stdout = dup(STDOUT_FILENO);
+    if (cmd->is_redirection) {
+        dup2(fileno(cmd->redirection_fp), STDERR_FILENO);
+    }
+
+    if (is_built_in(cmd->cmd_and_args[0])) {
+        if ((execute_built_in(cmd->cmd_and_args) == -1)) {
             print_error();
             return -1;
         }
         return 0;
     }
 
-    char* cmd_absolute_path = check_executable_path_validity(cmd_and_args[0], get_path());
+    char* cmd_absolute_path = check_executable_path_validity(cmd->cmd_and_args[0], get_path());
     pid_t pid = fork();
     if (pid < 0) {
         return -1;
     } else if (pid == 0) {
         // execv()
-        if ((execv(cmd_absolute_path, cmd_and_args)) == -1) {
+        if ((execv(cmd_absolute_path, cmd->cmd_and_args)) == -1) {
             print_error();
             return -1;
         }
@@ -324,15 +349,13 @@ int execute(char **cmd_and_args) {
         // int status;
         // waitpid(pid, &status, 0);
     }
+    if (cmd->is_redirection) {
+        fflush(stdout);
+        dup2(original_stdout, STDERR_FILENO);
+    }
     return 0;
 }
 
-
-char** parse_input(char* input, size_t *num_of_tokens) {
-    const char* delimiter = " ";
-    char** tokens = separate_with_delimiter(input, delimiter, num_of_tokens);
-    return tokens;
-}
 
 void print_error() {
     char error_message[30] = "An error has occurred\n";
