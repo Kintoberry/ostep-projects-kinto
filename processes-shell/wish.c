@@ -33,12 +33,13 @@ int main(int argc, char** argv) {
     }
     char* input;
     while((input = receive_input(fp)) != NULL) {
+        if (!is_batch_mode)
+            printf("wish> ");
         if (execute_input(input) == -1) {
             free(input);
             continue;
         }
-        if (!is_batch_mode)
-            printf("wish> ");
+        
         free(input);
         
     }

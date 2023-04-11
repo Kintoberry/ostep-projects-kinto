@@ -161,8 +161,9 @@ void overwrite_path(char **paths, int start_index) {
 
 char *get_absolute_path(char *path) {
     char *cwd = get_cwd();
-    char *abs_path = malloc(strlen(cwd) + strlen(path) + strlen("\0"));
+    char *abs_path = malloc(strlen(cwd) + strlen(path) + strlen("/") + strlen("\0"));
     strcat(abs_path, cwd);
+    strcat(abs_path, "/");
     strcat(abs_path, path);
     strcat(abs_path, "\0");
     return abs_path;
