@@ -283,16 +283,25 @@ char **separate_parallel_commands(char *input, size_t *num_items) {
 int parse_redirection(Command* cmd, char *cmd_str) {
     size_t num_items;
     char **tokens = separate_with_delimiter(cmd_str, ">", &num_items);
+    printf("number of items after breaking >: %ld\n", num_items);
+    printf("tokens[0]: %s\n", tokens[0]);
+    printf("tokens[1]: %s\n", tokens[1]);
+    printf("strlen(tokens[1]): %ld\n", strlen(tokens[1]));
     if (num_items > 2) {
         print_error();
         return -1;
     } else if (num_items == 2) {
+        if (strlen(tokens[1]) == 0) {
+            return -1;
+        }
         cmd->is_redirection = true;
         cmd->redirection_fp = fopen(tokens[1], "w");
+        printf("redirection set correctly: \n");
     } else {
         cmd->is_redirection = false;
         cmd->redirection_fp = NULL;
     }
+    cmd->num_items = num_items;
     cmd->cmd_and_args = parse_each_command(tokens[0], (cmd->num_items));
     return 0;
 }
@@ -314,16 +323,25 @@ Command **parse_all_commands(char *input) {
     int index = 0;
     while (parallel_cmds[index] != NULL) {
         Command *each_cmd = (Command *) malloc(sizeof(Command *));
-        parse_redirection(each_cmd, parallel_cmds[index]);
+        int ret = parse_redirection(each_cmd, parallel_cmds[index]);
+        if (ret == -1) {
+            return NULL;   
+        }
+        printf("loop?\n");
         cmds[index] = each_cmd;
         index++;
     }
     cmds[index] = NULL;
+    printf("cmds[0]->cmds_and_args[0]: %s\n", cmds[0]->cmd_and_args[0]);
     return cmds;
 }
 
 int execute_input(char *input) {
-    Command **cmds = parse_all_commands(strip(input));
+    char *stripped_input = strip(input);
+    Command **cmds = parse_all_commands(stripped_input);
+    if (cmds == NULL) {
+        return -1;
+    }
     int index = 0;
     while(cmds[index] != NULL) {
         if (execute(cmds[index]) == -1) {
@@ -344,11 +362,16 @@ int execute_input(char *input) {
 }
 
 int execute(Command *cmd) {
+    printf("where?\n");
+    /**/
     int original_stdout = dup(STDOUT_FILENO);
-    if (cmd->is_redirection) {
-        dup2(fileno(cmd->redirection_fp), STDERR_FILENO);
+    if (original_stdout == -1) {
+        print_error();
+        return -1;
     }
-
+    if (cmd->is_redirection) {
+        dup2(fileno(cmd->redirection_fp), STDOUT_FILENO);
+    }
     if (is_built_in(cmd->cmd_and_args[0])) {
         if ((execute_built_in(cmd->cmd_and_args) == -1)) {
             print_error();
@@ -376,8 +399,10 @@ int execute(Command *cmd) {
     }
     if (cmd->is_redirection) {
         fflush(stdout);
-        dup2(original_stdout, STDERR_FILENO);
+        dup2(original_stdout, STDOUT_FILENO);
     }
+    close(original_stdout);
+    close(fileno(cmd->redirection_fp));
     return 0;
 }
 
